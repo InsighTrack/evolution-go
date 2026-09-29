@@ -1,0 +1,86 @@
+version: "3.8"
+
+# Stack de PRODUÇÃO do Evolution Go (InsighTrack).
+# Mudanças em relação ao stack original:
+#   - image: evoapicloud/evolution-go:0.7.2 -> ghcr.io/insightrack/evolution-go:0.7.2-wm-20260929
+#   - restart_policy: removido "max_attempts: 3" (reinicia indefinidamente em caso de falha)
+# Senhas/chaves são placeholders: preencha antes do deploy e NÃO commite os valores reais.
+
+services:
+  evolution_go:
+    image: ghcr.io/insightrack/evolution-go:0.7.2-wm-20260929
+    networks:
+      - network_swarm_public
+    environment:
+      SERVER_PORT: 4000
+      CLIENT_NAME: "evolution"
+      GLOBAL_API_KEY: "TROCAR_GLOBAL_API_KEY_PROD"
+
+      POSTGRES_AUTH_DB: "postgresql://evogo_rw:SENHA_AQUI@postgres:5432/evogo_auth?sslmode=disable"
+      POSTGRES_USERS_DB: "postgresql://evogo_rw:SENHA_AQUI@postgres:5432/evogo_users?sslmode=disable"
+
+      DATABASE_SAVE_MESSAGES: "false"
+      REDIS_URL: "redis://redis:6379"
+      WADEBUG: "INFO"
+      LOGTYPE: "console"
+      LOG_DIRECTORY: "/app/logs"
+      LOG_MAX_SIZE: "100"
+      LOG_MAX_BACKUPS: "5"
+      LOG_MAX_AGE: "30"
+      LOG_COMPRESS: "true"
+      CONNECT_ON_STARTUP: "true"
+      QRCODE_MAX_COUNT: "50"
+      WEBHOOK_FILES: "true"
+      OS_NAME: "Linux"
+      API_AUDIO_CONVERTER: ""
+      API_AUDIO_CONVERTER_KEY: ""
+      PROXY_HOST: ""
+      PROXY_PORT: ""
+      PROXY_USERNAME: ""
+      PROXY_PASSWORD: ""
+      AMQP_URL: ""
+      AMQP_GLOBAL_ENABLED: "false"
+      AMQP_GLOBAL_EVENTS: ""
+      NATS_URL: ""
+      NATS_GLOBAL_ENABLED: "false"
+      EVENT_IGNORE_GROUP: "false"
+      EVENT_IGNORE_STATUS: "true"
+      MINIO_ENABLED: "false"
+      MINIO_ENDPOINT: ""
+      MINIO_ACCESS_KEY: ""
+      MINIO_SECRET_KEY: ""
+      MINIO_BUCKET: ""
+      MINIO_USE_SSL: "false"
+    volumes:
+      - evolution_go_data:/app/dbdata
+      - evolution_go_logs:/app/logs
+    deploy:
+      replicas: 1
+      placement:
+        constraints:
+          - node.hostname == manager-tracklabs-1
+      restart_policy:
+        condition: on-failure
+        delay: 5s
+      labels:
+        - traefik.enable=true
+        - traefik.http.routers.evolution_go.rule=Host(`evolutiongo.tracklabs.com.br`)
+        - traefik.http.routers.evolution_go.entrypoints=websecure
+        - traefik.http.routers.evolution_go.tls=true
+        - traefik.http.routers.evolution_go.tls.certresolver=letsencryptresolver
+        - traefik.http.routers.evolution_go.service=evolution_go
+        - traefik.http.services.evolution_go.loadbalancer.server.port=4000
+        - traefik.http.services.evolution_go.loadbalancer.passHostHeader=true
+
+volumes:
+  evolution_go_data:
+    external: true
+    name: evolution_go_data
+  evolution_go_logs:
+    external: true
+    name: evolution_go_logs
+
+networks:
+  network_swarm_public:
+    external: true
+    name: network_swarm_public

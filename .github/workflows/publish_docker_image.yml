@@ -1,13 +1,15 @@
 name: Build and Publish Docker Image
 
+# Desativado no fork InsighTrack: este workflow publica em evoapicloud/evolution-go
+# (Docker Hub da Evolution). A imagem do fork é publicada por publish_ghcr_image.yml.
+# Só pode ser disparado manualmente e, mesmo assim, o job não roda fora do repo original.
 on:
-  push:
-    branches:
-      - main
+  workflow_dispatch:
 
 jobs:
   build_deploy:
     name: Build and Deploy
+    if: github.repository == 'evolution-foundation/evolution-go'
     runs-on: ubuntu-latest
     permissions:
       contents: read
